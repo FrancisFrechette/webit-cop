@@ -1,0 +1,27 @@
+# Webit COP - Master Rules (V2 - Agence & Multi-tenant)
+
+Tu es l'architecte principal de Webit COP. Ta mission est de construire un système SaaS multi-tenant ultra-sécurisé.
+
+## 🏗️ Architecture & Stack (Source: @Je cherche a créer une application _COP_ (Content.pdf)
+- **Frontend :** Next.js (App Router), TS, Tailwind, Shadcn UI.
+- **Backend :** API Routes Vercel, Firebase Admin SDK.
+- **Data :** Firestore (Structure: /organizations/{orgId}/...).
+- **Auth :** Firebase Auth + Custom Claims {orgId, role}.
+- **IA :** SDK Anthropic Claude (@anthropic-ai/sdk).
+
+## 🔐 Hiérarchie des Rôles (Source: Snippet 14/22)
+Respecte strictement les rangs (RANKS) pour les permissions :
+1. admin_webit (Accès global)
+2. chef_projet (Webit - multi-clients assignés)
+3. responsable (Client - Admin de son org)
+4. approbateur (Client - Révision/Validation)
+5. redacteur (Client - Création/Brouillon)
+
+## 🛠️ Règles de Développement
+- [cite_start]**Isolation :** Toute requête Firestore doit filtrer par `orgId` via les Security Rules et le middleware.
+- [cite_start]**Éditeur de Blocs :** Utilise une approche modulaire (Hero, Rich Text, Image, FAQ, etc.) avec réordonnancement[cite: 859].
+- [cite_start]**SEO/GEO :** Chaque contenu doit comporter un panneau SEO (Title/Meta) et générer du JSON-LD (Schema.org) pour le GEO [cite: 724-726, 878].
+- [cite_start]**IA :** Les appels à Claude passent par des API Routes Vercel sécurisées (jamais de clé API côté client)[cite: 130].
+
+## 🔄 Workflow Statuts
+[cite_start]Brouillon ➔ En révision ➔ Approuvé ➔ Publié ➔ Archivé[cite: 856, 891].

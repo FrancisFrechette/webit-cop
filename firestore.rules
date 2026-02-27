@@ -1,0 +1,114 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function userRole() {
+      return isSignedIn() ? request.auth.token.role : null;
+    }
+
+    function userOrgId() {
+      return isSignedIn() ? request.auth.token.orgId : null;
+    }
+
+    function roleRank() {
+      return userRole() == 'admin_webit' ? 5
+        : userRole() == 'chef_projet' ? 4
+        : userRole() == 'responsable' ? 3
+        : userRole() == 'approbateur' ? 2
+        : userRole() == 'redacteur' ? 1
+        : 0;
+    }
+
+    function hasMinRank(required) {
+      return roleRank() >= required;
+    }
+
+    function isSameOrg(orgId) {
+      return isSignedIn() && userOrgId() == orgId;
+    }
+
+    function statusOld() {
+      return resource.data.status;
+    }
+
+    function statusNew() {
+      return request.resource.data.status;
+    }
+
+    function validStatusTransition(oldStatus, newStatus) {
+      return
+        oldStatus == null && (newStatus == "brouillon" || newStatus == "en_revision") ||
+        oldStatus == newStatus ||
+        (oldStatus == "brouillon" && newStatus == "en_revision") ||
+        (oldStatus == "en_revision" && (newStatus == "approuve" || newStatus == "brouillon")) ||
+        (oldStatus == "approuve" && (newStatus == "publie" || newStatus == "en_revision")) ||
+        (oldStatus == "publie" && newStatus == "archive");
+    }
+
+    match /organizations/{orgId} {
+      // Lecture d'une organisation : limitée à l'org de l'utilisateur, sauf admin_webit
+      allow read: if isSameOrg(orgId) || userRole() == 'admin_webit';
+
+      // Création / mise à jour / suppression d'organisations : réservé à admin_webit
+      allow create, update, delete: if isSignedIn() && userRole() == 'admin_webit';
+
+      // Utilisateurs internes à une organisation
+      match /users/{userId} {
+        allow read: if isSameOrg(orgId) || userRole() == 'admin_webit';
+
+        // responsable+ (responsable, chef_projet, admin_webit) peuvent gérer les utilisateurs de leur org
+        allow create, update, delete: if isSameOrg(orgId) && hasMinRank(3);
+      }
+
+      // Pages de contenu
+      match /pages/{pageId} {
+        allow read: if isSameOrg(orgId) || userRole() == 'admin_webit';
+
+        // Création : redacteur+ dans son organisation
+        allow create: if isSameOrg(orgId) && hasMinRank(1);
+
+        // Mise à jour : contrôle du workflow de statut selon le rôle
+        allow update: if isSameOrg(orgId) && canUpdateContentWithWorkflow();
+
+        // Suppression : responsable+ dans son organisation
+        allow delete: if isSameOrg(orgId) && hasMinRank(3);
+      }
+
+      // Articles (mêmes règles que pages)
+      match /articles/{articleId} {
+        allow read: if isSameOrg(orgId) || userRole() == 'admin_webit';
+        allow create: if isSameOrg(orgId) && hasMinRank(1);
+        allow update: if isSameOrg(orgId) && canUpdateContentWithWorkflow();
+        allow delete: if isSameOrg(orgId) && hasMinRank(3);
+      }
+    }
+
+    function canUpdateContentWithWorkflow() {
+      let oldStatus = statusOld();
+      let newStatus = statusNew();
+
+      // redacteur : travail sur brouillon + envoi en révision
+      if (roleRank() == 1) {
+        return
+          (oldStatus == "brouillon" && (newStatus == "brouillon" || newStatus == "en_revision")) ||
+          (oldStatus == null && (newStatus == "brouillon" || newStatus == "en_revision"));
+      }
+
+      // approbateur : passage en approuvé / retour en révision
+      if (roleRank() == 2) {
+        return validStatusTransition(oldStatus, newStatus);
+      }
+
+      // responsable+ : contrôle complet du workflow
+      if (roleRank() >= 3) {
+        return validStatusTransition(oldStatus, newStatus);
+      }
+
+      return false;
+    }
+  }
+}
+

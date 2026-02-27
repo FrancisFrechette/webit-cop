@@ -1,43 +1,61 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const PROTECTED_PATHS = ["/app", "/dashboard"];
+// Routes qui appartiennent au dashboard (protégées ou non)
+const DASHBOARD_PATHS = ["/articles", "/pages", "/calendar", "/org"];
+
+// Routes qui nécessitent une session active
+const PROTECTED_PATHS = ["/app", "/dashboard", "/articles", "/pages", "/calendar", "/org"];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  const isProtected = PROTECTED_PATHS.some((prefix) =>
-    pathname.startsWith(prefix)
+  // Redirige les routes dashboard vers elles-mêmes (force le bon layout)
+  // Next.js résout le conflit (dashboard) vs (public)/[slug] via le matcher
+  const isDashboard = DASHBOARD_PATHS.some((prefix) =>
+    pathname === prefix || pathname.startsWith(prefix + "/")
   );
 
-  if (!isProtected) {
-    return NextResponse.next();
-  }
+  const isProtected = PROTECTED_PATHS.some((prefix) =>
+    pathname === prefix || pathname.startsWith(prefix + "/")
+  );
 
-  const tokenFromCookie =
-    request.cookies.get("session")?.value ??
-    request.cookies.get("__session")?.value;
+  if (isProtected) {
+    const tokenFromCookie =
+      request.cookies.get("session")?.value ??
+      request.cookies.get("__session")?.value;
 
-  const bearer =
-    request.headers.get("authorization") ??
-    request.headers.get("Authorization");
+    const bearer =
+      request.headers.get("authorization") ??
+      request.headers.get("Authorization");
 
-  const tokenFromHeader = bearer?.startsWith("Bearer ")
-    ? bearer.slice("Bearer ".length)
-    : undefined;
+    const tokenFromHeader = bearer?.startsWith("Bearer ")
+      ? bearer.slice("Bearer ".length)
+      : undefined;
 
-  const idToken = tokenFromHeader ?? tokenFromCookie;
+    const idToken = tokenFromHeader ?? tokenFromCookie;
 
-  if (!idToken) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    return NextResponse.redirect(url);
+    if (!idToken) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/login";
+      url.searchParams.set("next", pathname);
+      return NextResponse.redirect(url);
+    }
   }
 
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/app/:path*", "/dashboard/:path*"]
+  matcher: [
+    "/app/:path*",
+    "/dashboard/:path*",
+    "/articles/:path*",
+    "/articles",
+    "/pages/:path*",
+    "/pages",
+    "/calendar/:path*",
+    "/calendar",
+    "/org/:path*",
+  ],
 };
-

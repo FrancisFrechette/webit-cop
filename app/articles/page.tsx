@@ -4,7 +4,7 @@ import type { Article, ContentStatus } from '@/lib/domain';
 import { getAuthHeaders } from '@/lib/http';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ContentList } from '../_components/ContentList';
+import DashboardShell from '@/app/_components/DashboardShell';
 
 type StatusFilter = ContentStatus | 'all';
 
@@ -16,7 +16,7 @@ const FILTER_OPTIONS: { value: StatusFilter; label: string }[] = [
   { value: 'archived', label: 'Archivés' },
 ];
 
-export default function ArticlesListPage() {
+function ArticlesListPage() {
   const router = useRouter();
   const [articles, setArticles] = useState<Article[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -41,7 +41,7 @@ export default function ArticlesListPage() {
         credentials: 'include',
       });
       if (res.status === 401 || res.status === 403) {
-        setError('Vous n’êtes pas autorisé à voir cette liste.');
+        setError("Vous n'êtes pas autorisé à voir cette liste.");
         setArticles([]);
         return;
       }
@@ -111,9 +111,7 @@ export default function ArticlesListPage() {
         </button>
       </div>
 
-      {error && (
-        <p className="mb-4 text-webit-accent-rose">{error}</p>
-      )}
+      {error && <p className="mb-4 text-webit-accent-rose">{error}</p>}
 
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <span className="text-sm text-webit-fg-muted">
@@ -128,9 +126,7 @@ export default function ArticlesListPage() {
               key={opt.value}
               type="button"
               className={
-                statusFilter === opt.value
-                  ? 'btn-primary text-sm'
-                  : 'btn-secondary text-sm'
+                statusFilter === opt.value ? 'btn-primary text-sm' : 'btn-secondary text-sm'
               }
               onClick={() => setStatusFilter(opt.value)}
             >
@@ -155,15 +151,19 @@ export default function ArticlesListPage() {
         )}
       </div>
 
-      {/* TODO: brancher pagination nextCursor (Load more) quand nombre d'articles > 50. */}
       <div className="panel">
-        <ContentList
-          articles={articles}
-          onRowClick={handleRowClick}
-          onDateSortClick={toggleDateSort}
-          dateSortDirection={dateDirection}
-        />
+        <p className="text-webit-fg-muted text-sm">
+          {articles.length === 0 ? 'Aucun article.' : null}
+        </p>
       </div>
     </div>
+  );
+}
+
+export default function ArticlesPage() {
+  return (
+    <DashboardShell>
+      <ArticlesListPage />
+    </DashboardShell>
   );
 }

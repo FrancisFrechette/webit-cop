@@ -4,7 +4,7 @@ import type { Page } from '@/lib/domain';
 import { getAuthHeaders } from '@/lib/http';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
-import DashboardShell from '@/app/(dashboard)/DashboardShell';
+import DashboardShell from '@/app/_components/DashboardShell';
 
 function PagesListPage() {
   const router = useRouter();

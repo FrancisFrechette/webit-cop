@@ -1,12 +1,13 @@
 'use client';
 
+import DashboardShell from '@/app/_components/DashboardShell';
 import { useCallback, useEffect, useState } from 'react';
 import { getAuthHeaders } from '@/lib/http';
 import type { OrgMember, OrgRole } from '@/lib/domain';
 
 const ORG_ROLES: OrgRole[] = ['owner', 'admin', 'editor', 'author', 'viewer'];
 
-export default function OrgMembersPage() {
+function OrgMembersInner() {
   const [members, setMembers] = useState<OrgMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -159,7 +160,10 @@ export default function OrgMembersPage() {
         </div>
       )}
 
-      <form onSubmit={handleAddMember} className="mt-6 flex flex-wrap items-end gap-4 rounded border border-webit-panel-border bg-slate-800/40 p-4">
+      <form
+        onSubmit={handleAddMember}
+        className="mt-6 flex flex-wrap items-end gap-4 rounded border border-webit-panel-border bg-slate-800/40 p-4"
+      >
         <label className="flex flex-col gap-1">
           <span className="text-sm text-webit-fg-muted">Email</span>
           <input
@@ -246,3 +250,12 @@ export default function OrgMembersPage() {
     </div>
   );
 }
+
+export default function OrgMembersPage() {
+  return (
+    <DashboardShell>
+      <OrgMembersInner />
+    </DashboardShell>
+  );
+}
+
